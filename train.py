@@ -94,7 +94,7 @@ def main():
     parser.add_argument('--save_dir', type=str, help='checkpoint directory')
     parser.add_argument('--learning_rate', type=float, help='learning rate', default=0.001)
     parser.add_argument('--hidden_units', type=int, help='hidden units for classifier', default=4096)
-    parser.add_argument('--epochs', type=int, help='epochs for training', default=2)
+    parser.add_argument('--epochs', type=int, help='epochs for training', default=1)
     parser.add_argument('--gpu', action="store_true", help='for gpu and cpu', default="gpu")
     args = parser.parse_args()
      
