@@ -1,12 +1,12 @@
 # Rahul Sawriya
 from math import ceil
-from train import gpu_exists
 from torchvision import models
 import PIL
 import torch
 import argparse
 import json
 import numpy as np
+from processor import pro_check
 
 # print probability of flower
 def probability_print(probs, flowers):
@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--checkpoint', type=str, help='checkpoint file', required=True, default="checkpoint/checkpoint.pth")
     parser.add_argument('--top_k', type=int, help='top number of flowers', default=5) 
     parser.add_argument('--category_names', type=str, help='real names')
-    parser.add_argument('--gpu', action="store_true", help='Use GPU or CPU')
+    parser.add_argument('--gpu', action="store_true", help='use processor gpu or cpu', default="gpu")
     args = parser.parse_args()
     with open(args.category_names, 'r') as f:
         	cat_to_name = json.load(f)
@@ -57,7 +57,8 @@ def main():
     np_image = np_image.transpose(2, 0, 1)
     #====== image process end ====
     image_tensor = np_image
-    device = gpu_exists(gpu_arg=args.gpu);
+    #checking which processor exists.
+    device = pro_check(gpu_arg=args.gpu);
     print("Top k {}".format(args.top_k))
     """t_probs, t_labels, t_flowers = prediction(image_tensor, model, 
                                                  device, cat_to_name,

@@ -7,6 +7,7 @@ from torch import nn
 from collections import OrderedDict
 from torch import optim
 from torchvision import datasets, transforms, models
+from processor import pro_check
 
 
 def transformer(t_dir):
@@ -25,16 +26,6 @@ def transformer(t_dir):
                                                            [0.229, 0.224, 0.225])])
     data = datasets.ImageFolder(t_dir, transform=nt_transforms)
     return data
-
-def gpu_exists(gpu_arg):
-    if not gpu_arg:
-        return torch.device("cpu")
-    
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    
-    if device == "cpu":
-        print("CUDA is not on device, using CPU instead.")
-    return device
 
 # load data
 def record_loader(data, train=True):
@@ -94,8 +85,8 @@ def main():
     parser.add_argument('--save_dir', type=str, help='checkpoint directory')
     parser.add_argument('--learning_rate', type=float, help='learning rate', default=0.001)
     parser.add_argument('--hidden_units', type=int, help='hidden units for classifier', default=4096)
-    parser.add_argument('--epochs', type=int, help='epochs for training', default=1)
-    parser.add_argument('--gpu', action="store_true", help='for gpu and cpu', default="gpu")
+    parser.add_argument('--epochs', type=int, help='number of epochs for training', default=1)
+    parser.add_argument('--gpu', action="store_true", help='use processor gpu or cpu', default="gpu")
     args = parser.parse_args()
      
     data_dir = 'flowers/'
@@ -113,6 +104,8 @@ def main():
         model = models.vgg13(pretrained=True)
         model.name = "vgg13"
         print("Network arch specified as vgg13.")
+    elif arch == "alexnet:
+        model = models.alexnet(pretrained=True)
     else:
         print('select either vgg13 or vgg16 to build the model')
     for param in model.parameters():
@@ -127,7 +120,8 @@ def main():
                           ('output', nn.LogSoftmax(dim=1))
                           ]))
     model.classifier = classifier
-    device = gpu_exists(gpu_arg=args.gpu);
+    #checking which processor exists.
+    device = pro_check(gpu_arg=args.gpu);
     model.to(device);
     criterion = nn.NLLLoss()
     optimizer = optim.Adam(model.classifier.parameters(), lr=args.learning_rate)
@@ -169,7 +163,7 @@ def main():
             torch.save(checkpoint, 'checkpoint/checkpoint.pth')
         else:
             print("Model will not be saved, Directory not found.")
-    # function init_checkpint end
+    # function init_checkpoint end
 
 if __name__ == '__main__':
     main()
