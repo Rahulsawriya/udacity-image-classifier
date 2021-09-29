@@ -18,20 +18,20 @@ def data_transformer(t_dir):
     data = datasets.ImageFolder(t_dir, transform=nt_transforms)
     return data
 
-# load data
+# load data and creating the dataset
 def record_loader(data, train=True):
     re_loader = torch.utils.data.DataLoader(data, batch_size=50, shuffle=True) if train else torch.utils.data.DataLoader(data, batch_size=50)
     return re_loader
 
+# This function will train and validate the model
+def trainer_model(model, tr_loader, v_loader, device, 
+                  criterion, optimizer, epochs, print_all, steps):   
+    
 
-def network_trainer(model, tr_loader, v_loader, device, 
-                  criterion, optimizer, epochs, print_every, steps):   
-    print("Training process initializing .....\n")
-
-    for e in range(epochs):
-        running_loss = 0
+    for i in range(epochs):
+        rloss = 0
         model.train() 
-        for ii, (inputs, labels) in enumerate(tr_loader):
+        for aa, (inputs, labels) in enumerate(tr_loader):
             steps += 1
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
@@ -39,31 +39,29 @@ def network_trainer(model, tr_loader, v_loader, device,
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            running_loss += loss.item()
+            rloss += loss.item()
         
-            if steps % print_every == 0:
+            if steps % print_all == 0:
                 model.eval()
                 with torch.no_grad():
-                    #valid_loss, accuracy = validation(model, v_loader, criterion, device)
-                    # validation start
-                    test_loss = 0
-                    accuracy = 0
-                    for ii, (inputs, labels) in enumerate(v_loader):
+                    # This functionality will validate the model
+                    tloss, accuracy = 0, 0
+                    for bb, (inputs, labels) in enumerate(v_loader):
                         inputs, labels = inputs.to(device), labels.to(device)
                         output = model.forward(inputs)
-                        test_loss += criterion(output, labels).item()
+                        tloss += criterion(output, labels).item()
                         ps = torch.exp(output)
-                        equality = (labels.data == ps.max(dim=1)[1])
-                        accuracy += equality.type(torch.FloatTensor).mean()
-                        valid_loss, accuracy = test_loss, accuracy
+                        similarity = (labels.data == ps.max(dim=1)[1])
+                        accuracy += similarity.type(torch.FloatTensor).mean()
+                        v_loss, accuracy = tloss, accuracy
                     # validation end
             
-                print("Epoch: {}/{} | ".format(e+1, epochs),
-                     "Training Loss: {:.4f} | ".format(running_loss/print_every),
-                     "Validation Loss: {:.4f} | ".format(valid_loss/len(v_loader)),
-                     "Validation Accuracy: {:.4f}".format(accuracy/len(v_loader)))
+                print("Epoch: {}/{} || ".format(i+1, epochs),
+                     "Training Loss: {:.5f} || ".format(rloss/print_all),
+                     "Validation Loss: {:.5f} || ".format(v_loss/len(v_loader)),
+                     "Validation Accuracy: {:.5f}".format(accuracy/len(v_loader)))
             
-                running_loss = 0
+                rloss = 0
                 model.train()
 
     return model

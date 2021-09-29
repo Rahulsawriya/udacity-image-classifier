@@ -1,7 +1,7 @@
-# Rahul Sawriya
-from math import ceil
+#Rahul Sawriya
 from torchvision import models
 import PIL
+import math
 import torch
 import argparse
 import json
@@ -9,9 +9,9 @@ import numpy as np
 from processor import pro_check
 
 # print probability of flower
-def probability_print(probs, flowers):
+def probability(probs, flowers):
     for i, j in enumerate(zip(flowers, probs)):
-        print ("Rank {}:".format(i+1), "Flower: {}, liklihood: {}%".format(j[1], ceil(j[0]*100)))
+        print ("Rank {}:".format(i+1), "Flower: {}, Probability: {}%".format(j[1], math.ceil(j[0]*100)))
 
 
 def main():
@@ -26,14 +26,13 @@ def main():
     with open(args.category_names, 'r') as f:
         	cat_to_name = json.load(f)
 
-    #model = output_checkpoint_load(args.checkpoint)
     checkpoint = torch.load(args.checkpoint)
     if checkpoint['arch'] == 'vgg16':
         model = models.vgg16(pretrained=True)
         model.name = "vgg16"
     else: 
-        exec("model = models.{}(pretrained=True)".checkpoint['arch'])
-        model.name = checkpoint['arch']
+        model = models.vgg13(pretrained=True)
+        model.name = "vgg13"
 
     for param in model.parameters(): param.requires_grad = False
     model.class_to_idx = checkpoint['class_to_idx']
@@ -42,27 +41,24 @@ def main():
 
     #====== image process start===
     t_image = PIL.Image.open(args.image)
-    orig_width, orig_height = t_image.size
+    width, height = t_image.size
 
-    if orig_width < orig_height: resize_size=[256, 256**600]
-    else: resize_size=[256**600, 256]     
-    t_image.thumbnail(size=resize_size)
-    center = orig_width/4, orig_height/4
+    if width < height: resize_image=[256, 256**600]
+    else: resize_image=[256**600, 256]     
+    t_image.thumbnail(size=resize_image)
+    center = width/4, height/4
     left, top, right, bottom = center[0]-(244/2), center[1]-(244/2), center[0]+(244/2), center[1]+(244/2)
     t_image = t_image.crop((left, top, right, bottom))
     np_image = np.array(t_image)/255
-    normalise_means = [0.485, 0.456, 0.406]
-    normalise_std = [0.229, 0.224, 0.225]
-    np_image = (np_image-normalise_means)/normalise_std
+    n_means, n_std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+    np_image = (np_image-n_means)/n_std
     np_image = np_image.transpose(2, 0, 1)
     #====== image process end ====
     image_tensor = np_image
     #checking which processor exists.
     device = pro_check(gpu_arg=args.gpu);
-    print("Top k {}".format(args.top_k))
-    """t_probs, t_labels, t_flowers = prediction(image_tensor, model, 
-                                                 device, cat_to_name,
-                                                 args.top_k)"""
+    print("Top k flower {}".format(args.top_k))
+
     # prediction of image start
     model.eval();
     t_image = torch.from_numpy(np.expand_dims(image_tensor, 
@@ -70,17 +66,14 @@ def main():
     model=model.cpu()
     lprobs = model.forward(t_image)
     li_probs = torch.exp(lprobs)
-
     t_probs, t_labels = li_probs.topk(args.top_k)
-    t_probs = np.array(t_probs.detach())[0] 
-    t_labels = np.array(t_labels.detach())[0]
-
+    t_probs, t_labels = np.array(t_probs.detach())[0], np.array(t_labels.detach())[0]
     idx_to_class = {val: key for key, val in    
                                       model.class_to_idx.items()}
     t_labels = [idx_to_class[lab] for lab in t_labels]
     t_flowers = [cat_to_name[lab] for lab in t_labels]
     # prediction of image end
-    probability_print(t_flowers, t_probs)
+    probability(t_flowers, t_probs)
 
 if __name__ == '__main__': 
     main()
